@@ -14,6 +14,11 @@ public class ControlEnemigo : MonoBehaviour
     private Boolean movimientoHaciaArriba = true;
     [SerializeField] private float tolerancia = 0.1f;
 
+    [SerializeField]
+    private SpriteRenderer renderizador;
+
+    private Vector2 posicionObjetivo;
+
     private Rigidbody2D fisica;
 
     private void Awake()
@@ -31,7 +36,7 @@ public class ControlEnemigo : MonoBehaviour
     // Update is called once per frame
     private void FixedUpdate()
     {
-        Vector2 posicionObjetivo;
+        //Vector2 posicionObjetivo;
 
         if (velocidad <= 0)
             return;
@@ -62,5 +67,25 @@ public class ControlEnemigo : MonoBehaviour
         }
         fisica.MovePosition(Vector2.MoveTowards(fisica.position, posicionObjetivo, velocidad * Time.deltaTime));
 
+        OrientarSprite();
+
     }
+    private void OrientarSprite()
+    {
+        if (renderizador == null)
+            return;
+        float direccion = posicionObjetivo.x - fisica.position.x;
+
+
+        if (direccion > 0.1f)
+        {
+            renderizador.flipX = true;
+        }
+        else if (direccion < -0.1f)
+        {
+            renderizador.flipX = false;
+        }
+
+    }
+
 }
