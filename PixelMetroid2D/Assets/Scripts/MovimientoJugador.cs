@@ -1,4 +1,5 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,6 +7,7 @@ using UnityEngine.InputSystem;
 public class MovimientoJugador : MonoBehaviour
 {
     [Header("Movimiento")]
+    [SerializeField] private Transform spawnPoint;
     public float velocity;
 
     [SerializeField] private InputActionReference accionMover;
@@ -29,6 +31,23 @@ public class MovimientoJugador : MonoBehaviour
     private float longitudRaycast = 1.6f;
     private float umbralCarrera = 0.1f;
 
+    [Header("Tiempo")]
+    private float tiempoInicio;
+    private float tiempoReal;
+    [SerializeField, Min(1)] private int tiempoLimiteNivel = 100;
+    [SerializeField] private int tiempoEmpleado;
+
+    [Header("Puntuación")]
+    [SerializeField] private int puntuacion;
+
+    [Header("Salud")]
+    [SerializeField] private int vidas = 3;
+
+    public int Vidas => vidas;
+    private Color colorOriginal;
+    [SerializeField, Min(0.01f)] private float segundosInvulnerable = 1f;
+    private bool vulnerable = true;
+
 
     private void Awake()
     {
@@ -40,14 +59,38 @@ public class MovimientoJugador : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        if (renderizador != null)
+            colorOriginal = renderizador.color;
+        else
+            Debug.LogError("El jugador no tiene asignado el objeto Sprite Renderer.");
 
+        tiempoInicio = Time.time;
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         entradaX = accionMover.action.ReadValue<Vector2>();
 
+        ComprobarFinJuego();
+        SaltoJugador();
+        AnimarJugador();
+    }
+
+    private void ComprobarFinJuego()
+    {
+  
+        tiempoReal = Time.time - tiempoInicio;
+        tiempoEmpleado = Mathf.FloorToInt(tiempoReal);
+        if(tiempoEmpleado >= tiempoLimiteNivel)
+        {
+            FinJuego();
+            return;
+        }
+    }
+
+    private void SaltoJugador()
+    {
         RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, longitudRaycast, capaSuelo);
 
         estaTocandoSuelo = hit.collider != null;
@@ -60,9 +103,6 @@ public class MovimientoJugador : MonoBehaviour
         {
             saltoPendiente = true;
         }
-
-        AnimarJugador();
-
     }
 
     private void AnimarJugador()
@@ -119,6 +159,13 @@ public class MovimientoJugador : MonoBehaviour
 
     private void FixedUpdate()
     {
+        MoverJugador();
+        OrientarSprite();
+
+    }
+
+    private void MoverJugador()
+    {
         fisica.linearVelocity = new Vector2(entradaX.x * velocity, fisica.linearVelocity.y);
         if (saltoPendiente)
         {
@@ -126,9 +173,6 @@ public class MovimientoJugador : MonoBehaviour
         }
 
         saltoPendiente = false;
-
-        OrientarSprite();
-
     }
 
     private void OrientarSprite()
@@ -144,7 +188,58 @@ public class MovimientoJugador : MonoBehaviour
         {
             renderizador.flipX = true;
         }
-        
     }
 
+    public void ReaparecerJugador()
+    {
+
+        if (spawnPoint == null)
+        {
+            Debug.Log("Asigna un SpawnPoint al objeto jugador", this);
+            enabled = false;
+            return;
+        }
+
+        fisica.position = (Vector2)spawnPoint.position;
+        fisica.linearVelocity = Vector2.zero;
+    }
+
+    public void IncrementarPuntos(int cantidad)
+    {
+        if (cantidad <= 0) return;
+        puntuacion += cantidad;
+    }
+
+    public void Quitarvidas()
+    {
+        if (!vulnerable) return;
+        vulnerable = false;
+        vidas--;
+
+        if(renderizador != null)
+        {
+            renderizador.color = Color.blue;
+        }
+
+        if (vidas <= 0)
+        {
+            FinJuego();
+            return;
+        }
+
+        Invoke(nameof(HacerVulnerable), segundosInvulnerable);
+    }
+
+    private void HacerVulnerable()
+    {
+        vulnerable = true;
+        if (renderizador != null)
+            renderizador.color = colorOriginal;
+    }
+
+    private void FinJuego()
+    {
+        Debug.Log("Juego finalizado.");
+        gameObject.SetActive(false);
+    }
 }
