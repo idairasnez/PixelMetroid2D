@@ -43,6 +43,12 @@ public class MovimientoJugador : MonoBehaviour
     [Header("Salud")]
     [SerializeField] private int vidas = 3;
 
+    [Header("Canvas")]
+    [SerializeField] private Canvas canvasInterfaz;
+
+    private ControlHUD hud;
+
+
     public int Vidas => vidas;
     private Color colorOriginal;
     [SerializeField, Min(0.01f)] private float segundosInvulnerable = 1f;
@@ -65,6 +71,8 @@ public class MovimientoJugador : MonoBehaviour
             Debug.LogError("El jugador no tiene asignado el objeto Sprite Renderer.");
 
         tiempoInicio = Time.time;
+
+        inicializarHud();
     }
 
     // Update is called once per frame
@@ -75,6 +83,25 @@ public class MovimientoJugador : MonoBehaviour
         ComprobarFinJuego();
         SaltoJugador();
         AnimarJugador();
+        hud.SetPowerUps(GameObject.FindGameObjectsWithTag("PowerUp").Length);
+    }
+
+    private void inicializarHud()
+    {
+        if (canvasInterfaz != null)
+        {
+            hud = canvasInterfaz.GetComponent<ControlHUD>();
+        }
+        else
+            Debug.LogError("Asigna el objeto Canvas con el componente ControlHud al atributo Canvas del jugador");
+
+        if (hud != null)
+        {
+            hud.SetVidas(vidas);
+            hud.SetTiempo(tiempoLimiteNivel);
+            hud.SetPowerUps(GameObject.FindGameObjectsWithTag("PowerUp").Length);
+        } else
+            Debug.LogError("Asigna el objeto Canvas con el componente ControlHud al atributo Canvas del jugador");
     }
 
     private void ComprobarFinJuego()
@@ -82,6 +109,10 @@ public class MovimientoJugador : MonoBehaviour
   
         tiempoReal = Time.time - tiempoInicio;
         tiempoEmpleado = Mathf.FloorToInt(tiempoReal);
+
+        int segundosRestantes = Mathf.CeilToInt(tiempoLimiteNivel - tiempoReal);
+        hud.SetTiempo(segundosRestantes);
+
         if(tiempoEmpleado >= tiempoLimiteNivel)
         {
             FinJuego();
@@ -215,6 +246,8 @@ public class MovimientoJugador : MonoBehaviour
         if (!vulnerable) return;
         vulnerable = false;
         vidas--;
+
+        hud.SetVidas(vidas);
 
         if(renderizador != null)
         {
